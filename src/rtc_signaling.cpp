@@ -116,7 +116,8 @@ rtc_signaling::rtc_signaling(io_context& ioc, torrent* t, rtc_stream_handler han
 
 rtc_signaling::~rtc_signaling()
 {
-	close();
+	// not close(), the offer handlers may refer to objects already destroyed
+	m_connections.clear();
 
 #if DEBUG_RTC
 	appender.unset_session(&m_torrent->session());
@@ -130,8 +131,18 @@ alert_manager& rtc_signaling::alerts() const
 
 void rtc_signaling::close()
 {
+	// collected first since the handlers may re-enter
+	std::vector<std::shared_ptr<offer_batch>> batches;
+	for (auto& c : m_connections)
+	{
+		if (c.second.batch)
+			batches.push_back(std::move(c.second.batch));
+	}
 	m_connections.clear();
 	m_num_incoming_connections = 0;
+
+	for (auto const& b : batches)
+		b->abort();
 }
 
 rtc_offer_id rtc_signaling::generate_offer_id() const
@@ -146,7 +157,7 @@ void rtc_signaling::generate_offers(int count, offers_handler handler)
 #ifndef TORRENT_DISABLE_LOGGING
 	debug_log("*** RTC signaling generating %d offers", count);
 #endif
-	m_offer_batches.emplace(count, std::move(handler));
+	auto const batch = std::make_shared<offer_batch>(count, std::move(handler));
 	while (count--)
 	{
 		rtc_offer_id offer_id = generate_offer_id();
@@ -166,6 +177,8 @@ void rtc_signaling::generate_offers(int count, offers_handler handler)
 				, std::move(offer)
 			));
 		});
+
+		conn.batch = batch;
 
 		auto dc = conn.peer_connection->createDataChannel("webtorrent");
 		dc->onOpen([weak_this = weak_from_this(), offer_id, weak_dc = make_weak_ptr(dc)]()
@@ -384,14 +397,17 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 
 void rtc_signaling::on_generated_offer(error_code const& ec, rtc_offer offer)
 {
+	// the connection failed, timed out or was closed and its batch has
+	// already been told. After close() m_torrent may be destroyed too
+	auto const it = m_connections.find(offer.id);
+	if (it == m_connections.end() || !it->second.batch)
+		return;
+
 #ifndef TORRENT_DISABLE_LOGGING
 	debug_log("*** RTC signaling generated offer");
 #endif
-	while (!m_offer_batches.empty() && m_offer_batches.front().is_complete())
-		m_offer_batches.pop();
-
-	if (!m_offer_batches.empty())
-		m_offer_batches.front().add(ec, std::forward<rtc_offer>(offer));
+	auto const batch = std::move(it->second.batch);
+	batch->add(ec, std::move(offer));
 }
 
 void rtc_signaling::on_generated_answer(error_code const& ec, rtc_answer answer, rtc_offer offer)
@@ -427,6 +443,11 @@ void rtc_signaling::on_data_channel(error_code const& ec
 	connection conn = std::move(it->second);
 	m_connections.erase(it);
 
+	// the local offer was never generated, e.g. ICE gathering outlasted the
+	// connection timeout. Without this the batch would never complete
+	if (conn.batch)
+		conn.batch->add(ec ? ec : error_code(boost::asio::error::connection_aborted), {});
+
 	if (ec)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -458,6 +479,15 @@ void rtc_signaling::offer_batch::add(error_code const& ec, rtc_offer offer)
 	// a partially failed batch still carries usable offers
 	if (is_complete())
 		m_handler(m_offers.empty() ? ec : error_code(), m_offers);
+}
+
+void rtc_signaling::offer_batch::abort()
+{
+	if (is_complete())
+		return;
+	m_offers.clear();
+	m_count = 0;
+	m_handler(boost::asio::error::operation_aborted, {});
 }
 
 bool rtc_signaling::offer_batch::is_complete() const

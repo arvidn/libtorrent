@@ -399,8 +399,10 @@ void timeout_handler::set_timeout(int completion_timeout, int read_timeout)
 					};
 
 					// the torrent refused to create RTC peers, connecting to the
-					// tracker anyway would bypass that policy
-					if (ec == boost::asio::error::operation_not_supported)
+					// tracker anyway would bypass that policy. operation_aborted
+					// means the torrent was removed while generating offers
+					if (ec == boost::asio::error::operation_not_supported
+						|| ec == boost::asio::error::operation_aborted)
 						return fail(ec);
 
 					// a proxy may have been enabled while the offers were being

@@ -98,6 +98,20 @@ struct TORRENT_EXTRA_EXPORT rtc_signaling final : std::enable_shared_from_this<r
 private:
 	using description_handler = std::function<void(error_code const&, std::string const& description)>;
 
+	struct offer_batch
+	{
+		offer_batch(int count, offers_handler handler);
+
+		void add(error_code const& ec, rtc_offer offer);
+		void abort();
+		bool is_complete() const;
+
+	private:
+		int m_count;
+		offers_handler m_handler;
+		std::vector<rtc_offer> m_offers;
+	};
+
 	struct connection
 	{
 		explicit connection(io_context& ioc) : timer(ioc) {}
@@ -106,6 +120,10 @@ private:
 		std::shared_ptr<rtc::DataChannel> data_channel;
 		std::optional<peer_id> pid;
 		bool incoming = false;
+
+		// set on an outgoing connection until its local offer has been
+		// reported to the batch
+		std::shared_ptr<offer_batch> batch;
 
 		deadline_timer timer;
 	};
@@ -124,21 +142,6 @@ private:
 	std::unordered_map<rtc_offer_id, connection, boost::hash<rtc_offer_id>> m_connections;
 	int m_num_incoming_connections = 0;
 	std::queue<rtc_offer_id> m_queue;
-
-	struct offer_batch
-	{
-		offer_batch(int count, offers_handler handler);
-
-		void add(error_code const& ec, rtc_offer offer);
-		bool is_complete() const;
-
-	private:
-		int m_count;
-		offers_handler m_handler;
-		std::vector<rtc_offer> m_offers;
-	};
-
-	std::queue<offer_batch> m_offer_batches;
 };
 
 }

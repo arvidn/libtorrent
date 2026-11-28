@@ -2899,6 +2899,18 @@ namespace {
 			return;
 		}
 
+		if (t->is_aborted() || t->is_deleted())
+		{
+#if TORRENT_USE_ASSERTS
+			TORRENT_ASSERT_VAL(m_received_in_piece == p.length, m_received_in_piece);
+			m_received_in_piece = 0;
+#endif
+			// the block stays queued, clear_download_queue() releases it from
+			// the picker. incoming_piece_fragment() already deducted these bytes
+			m_outstanding_bytes += p.length;
+			return;
+		}
+
 		time_point const now = clock_type::now();
 
 		t->need_picker();
@@ -3004,8 +3016,6 @@ namespace {
 		m_download_queue.erase(b);
 		if (m_download_queue.empty())
 			m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
-
-		if (t->is_deleted()) return;
 
 		std::uint8_t const picker_gen = t->picker_generation();
 		bool const exceeded = m_disk_thread.async_write(t->storage(),
