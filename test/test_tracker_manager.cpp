@@ -8,7 +8,9 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <array>
 #include <functional>
+#include <optional>
 
 #include "test.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp"
@@ -321,6 +323,71 @@ TORRENT_TEST(websocket_tracker_proxy_enabled_during_offers)
 	TEST_CHECK(h.m_tracker_manager.empty());
 	TEST_EQUAL(
 		cb->last_error, error_code(boost::system::errc::permission_denied, generic_category()));
+}
+
+// a tracker that completes the upgrade and then never responds to anything,
+// not even a Close frame, must not keep the connection open once it's closed
+TORRENT_TEST(websocket_connection_close)
+{
+	using namespace std::literals;
+	namespace websocket = boost::beast::websocket;
+
+	io_context ios;
+	aux::session_settings sett;
+	tracker_manager_handler h{ios, sett};
+
+	lt::tcp::acceptor acceptor(ios, lt::tcp::endpoint(make_address_v4("127.0.0.1"), 0));
+	std::optional<websocket::stream<lt::tcp::socket>> server;
+	std::array<char, 1024> buf{};
+	bool got_data = false;
+	bool closed = false;
+
+	std::function<void()> const read_until_closed = [&] {
+		server->next_layer().async_read_some(
+			boost::asio::buffer(buf), [&](error_code const& ec, std::size_t) {
+				if (ec)
+				{
+					closed = true;
+					return;
+				}
+				got_data = true;
+				read_until_closed();
+			});
+	};
+
+	acceptor.async_accept([&](error_code const& ec, lt::tcp::socket s) {
+		if (ec)
+			return;
+		server.emplace(std::move(s));
+		server->async_accept([&](error_code const& e) {
+			if (!e)
+				read_until_closed();
+		});
+	});
+
+	auto const run_until = [&](bool const& cond) {
+		for (int i = 0; i < 50 && !cond; ++i)
+		{
+			ios.restart();
+			ios.run_for(100ms);
+		}
+	};
+
+	tracker_request r;
+	r.url = "ws://127.0.0.1:" + std::to_string(acceptor.local_endpoint().port()) + "/announce";
+	r.num_want = 1;
+	auto const cb = std::make_shared<ws_request_callback>();
+	h.m_tracker_manager.queue_request(ios, std::move(r), sett, cb);
+
+	// the announce has arrived, so the client has a read outstanding
+	run_until(got_data);
+	TEST_CHECK(got_data);
+	TEST_CHECK(!cb->last_error);
+
+	h.m_tracker_manager.abort_all_requests();
+	run_until(closed);
+	TEST_CHECK(closed);
+	TEST_EQUAL(cb->last_error, error_code(errors::announce_skipped));
 }
 
 #if TORRENT_USE_I2P

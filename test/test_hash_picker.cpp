@@ -637,7 +637,7 @@ TORRENT_TEST(bad_block_hash)
 	if (result.hash_failed.size() == 1)
 	{
 		TEST_EQUAL(result.hash_failed[0].first, 1_piece);
-		TEST_CHECK(result.hash_failed[0].second == std::vector<int>{0});
+		TEST_CHECK((result.hash_failed[0].second == std::vector<int>{0}));
 	}
 }
 

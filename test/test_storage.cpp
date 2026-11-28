@@ -3987,3 +3987,206 @@ TORRENT_TEST(symlink_through_other_torrents_symlink_pread)
 	test_symlink_through_other_torrents_symlink<pread_storage>();
 }
 #endif // TORRENT_HAS_SYMLINK
+
+namespace {
+
+std::string file_content(std::string const& p)
+{
+	std::vector<char> v;
+	error_code ec;
+	load_file(p, v, ec);
+	TEST_CHECK(!ec);
+	return {v.begin(), v.end()};
+}
+
+template <typename StorageType>
+std::shared_ptr<StorageType> init_zero_prio_storage(file_storage const& fs,
+	std::string const& test_path,
+	typename file_pool_type<StorageType>::type& fp,
+	aux::session_settings const& set)
+{
+	aux::vector<download_priority_t, file_index_t> priorities(
+		std::size_t(fs.num_files()), dont_download);
+	renamed_files rf;
+	storage_params p{
+		fs, rf, test_path, {}, storage_mode_sparse, priorities, sha1_hash{}, true, false};
+	auto s = make_storage<StorageType>(p, fp);
+	storage_error se;
+	s->initialize(set, se);
+	TEST_CHECK(!se);
+	return s;
+}
+
+}
+
+// zero-sized files are only created by initialize_storage() if they have
+// non-zero priority. Raising the priority later creates them, but must never
+// truncate anything already at the path
+template <typename StorageType>
+void test_empty_file_priority(bool const creates_once)
+{
+	std::string const test_path = absolute("empty_file_priority");
+	delete_dirs(test_path);
+
+	file_storage fs;
+	fs.set_piece_length(0x4000);
+	fs.add_file_borrow({}, "test/data", 0x4000);
+	fs.add_file_borrow({}, "test/sub/empty", 0);
+	fs.add_file_borrow({}, "test/existing", 0);
+	fs.set_num_pieces(1);
+
+	std::string const empty = combine_path(test_path, "test/sub/empty");
+	std::string const existing = combine_path(test_path, "test/existing");
+	error_code ec;
+	create_directories(combine_path(test_path, "test"), ec);
+	TEST_CHECK(!ec);
+	ofstream(existing.c_str()) << "existing data";
+
+	typename file_pool_type<StorageType>::type fp;
+	aux::session_settings set;
+	auto s = init_zero_prio_storage<StorageType>(fs, test_path, fp, set);
+	TEST_CHECK(!exists(empty));
+
+	aux::vector<download_priority_t, file_index_t> prio(
+		std::size_t(fs.num_files()), default_priority);
+	storage_error se;
+	s->set_file_priority(set, prio, se);
+	TEST_CHECK(!se);
+	TEST_CHECK(exists(empty));
+	TEST_EQUAL(file_content(empty), "");
+	TEST_EQUAL(file_content(existing), "existing data");
+
+	if (!creates_once)
+		return;
+	remove(empty, ec);
+	TEST_CHECK(!ec);
+	aux::vector<download_priority_t, file_index_t> no_download(
+		std::size_t(fs.num_files()), dont_download);
+	s->set_file_priority(set, no_download, se);
+	TEST_CHECK(!se);
+	s->set_file_priority(set, prio, se);
+	TEST_CHECK(!se);
+	TEST_CHECK(!exists(empty));
+}
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(empty_file_priority_mmap) { test_empty_file_priority<mmap_storage>(true); }
+#endif
+
+TORRENT_TEST(empty_file_priority_posix) { test_empty_file_priority<posix_storage>(false); }
+
+TORRENT_TEST(empty_file_priority_pread) { test_empty_file_priority<pread_storage>(true); }
+
+template <typename StorageType>
+void test_empty_file_attributes()
+{
+	std::string const test_path = absolute("empty_file_attributes");
+	delete_dirs(test_path);
+
+	file_storage fs;
+	fs.set_piece_length(0x4000);
+	fs.add_file_borrow({}, "test/data", 0x4000);
+	fs.add_file_borrow({}, "test/exec", 0, file_storage::flag_executable);
+	fs.add_file_borrow({}, "test/hidden", 0, file_storage::flag_hidden);
+	fs.set_num_pieces(1);
+
+	aux::vector<download_priority_t, file_index_t> priorities(
+		std::size_t(fs.num_files()), default_priority);
+	renamed_files rf;
+	storage_params p{
+		fs, rf, test_path, {}, storage_mode_sparse, priorities, sha1_hash{}, true, false};
+	typename file_pool_type<StorageType>::type fp;
+	auto s = make_storage<StorageType>(p, fp);
+	aux::session_settings set;
+	storage_error se;
+	s->initialize(set, se);
+	TEST_CHECK(!se);
+
+	error_code ec;
+	file_status st;
+	stat_file(combine_path(test_path, "test/exec"), &st, ec);
+	TEST_CHECK(!ec);
+#ifndef TORRENT_WINDOWS
+	TEST_CHECK(bool(st.mode & file_status::executable));
+#endif
+
+	stat_file(combine_path(test_path, "test/hidden"), &st, ec);
+	TEST_CHECK(!ec);
+#ifdef TORRENT_WINDOWS
+	TEST_CHECK(bool(st.mode & file_status::hidden));
+#endif
+}
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(empty_file_attributes_mmap) { test_empty_file_attributes<mmap_storage>(); }
+#endif
+
+TORRENT_TEST(empty_file_attributes_posix) { test_empty_file_attributes<posix_storage>(); }
+
+TORRENT_TEST(empty_file_attributes_pread) { test_empty_file_attributes<pread_storage>(); }
+
+#if TORRENT_HAS_SYMLINK
+// a session with symlink support may have left symlinks where a later session
+// without it expects empty files. Neither the link nor its target may be
+// touched
+template <typename StorageType>
+void test_empty_file_priority_over_symlink()
+{
+	std::string const test_path = absolute("empty_file_priority_symlink");
+	delete_dirs(test_path);
+
+	file_storage fs;
+	fs.set_piece_length(0x4000);
+	fs.add_file_borrow({}, "test/data", 0x4000);
+	fs.add_file_borrow({}, "test/link", 0);
+	fs.add_file_borrow({}, "test/dangling", 0);
+	fs.add_file_borrow({}, "test/real_link", 0, file_storage::flag_symlink, 0, "target");
+	fs.set_num_pieces(1);
+
+	std::string const target = combine_path(test_path, "test/target");
+	std::string const missing = combine_path(test_path, "test/missing");
+	error_code ec;
+	create_directories(combine_path(test_path, "test"), ec);
+	TEST_CHECK(!ec);
+	ofstream(target.c_str()) << "target data";
+	storage_error se;
+	aux::create_symlink("target", combine_path(test_path, "test/link"), se);
+	TEST_CHECK(!se);
+	aux::create_symlink("missing", combine_path(test_path, "test/dangling"), se);
+	TEST_CHECK(!se);
+	aux::create_symlink("target", combine_path(test_path, "test/real_link"), se);
+	TEST_CHECK(!se);
+
+	typename file_pool_type<StorageType>::type fp;
+	aux::session_settings set;
+	auto s = init_zero_prio_storage<StorageType>(fs, test_path, fp, set);
+
+	aux::vector<download_priority_t, file_index_t> prio(
+		std::size_t(fs.num_files()), default_priority);
+	s->set_file_priority(set, prio, se);
+	TEST_CHECK(!se);
+	TEST_EQUAL(file_content(target), "target data");
+	TEST_CHECK(!exists_no_follow(missing));
+	file_status st;
+	stat_file(combine_path(test_path, "test/link"), &st, ec, dont_follow_links);
+	TEST_CHECK(!ec);
+	TEST_CHECK(bool(st.mode & file_status::symlink));
+}
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(empty_file_priority_over_symlink_mmap)
+{
+	test_empty_file_priority_over_symlink<mmap_storage>();
+}
+#endif
+
+TORRENT_TEST(empty_file_priority_over_symlink_posix)
+{
+	test_empty_file_priority_over_symlink<posix_storage>();
+}
+
+TORRENT_TEST(empty_file_priority_over_symlink_pread)
+{
+	test_empty_file_priority_over_symlink<pread_storage>();
+}
+#endif // TORRENT_HAS_SYMLINK

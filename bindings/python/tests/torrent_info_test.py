@@ -78,6 +78,22 @@ class InfoHashTest(unittest.TestCase):
         self.assertEqual(hash(ih), hash(lt.info_hash_t(sha1, sha256)))
         self.assertNotEqual(ih, lt.info_hash_t())
 
+    def test_contains(self) -> None:
+        s1 = lt.sha1_hash(b"a" * 20)
+        s2 = lt.sha256_hash(b"b" * 32)
+
+        ih1 = lt.info_hash_t(s1)
+        ih2 = lt.info_hash_t(s2)
+        ih12 = lt.info_hash_t(s1, s2)
+
+        self.assertTrue(ih12.contains(ih1))
+        self.assertTrue(ih12.contains(ih2))
+        self.assertTrue(ih12.contains(ih12))
+        self.assertFalse(ih1.contains(ih12))
+        self.assertFalse(ih2.contains(ih1))
+        # a v1 hash may be a truncated v2 hash
+        self.assertTrue(ih2.contains(lt.info_hash_t(lt.sha1_hash(b"b" * 20))))
+
 
 class ConstructorTest(unittest.TestCase):
     def do_test_filename(self, name: AnyStr) -> None:

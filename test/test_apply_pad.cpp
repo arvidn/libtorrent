@@ -25,7 +25,7 @@ struct piece_byte
 
 struct expect_calls
 {
-	expect_calls(std::vector<piece_byte> calls)
+	explicit expect_calls(std::vector<piece_byte> calls)
 		: m_calls(std::move(calls))
 	{}
 

@@ -281,6 +281,7 @@ TOOLS_FILES= \
   parse_sample.py        \
   parse_session_stats.py \
   parse_utp_log.py       \
+  run_bencher.py         \
   check_installed_headers.py \
   read_ahead_trace.cpp   \
   read_ahead_viz.py      \

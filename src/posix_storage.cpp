@@ -88,7 +88,18 @@ posix_storage::~posix_storage()
 			download_priority_t new_prio = prio[i];
 			if (old_prio == dont_download && new_prio != dont_download)
 			{
-				if (m_part_file && use_partfile(i))
+				if (fs.file_size(i) == 0)
+				{
+					// initialize_storage() skipped this file while it had
+					// priority 0
+					aux::create_empty_entry(fs, i, m_save_path, ec);
+					if (ec)
+					{
+						prio = m_file_priority;
+						return;
+					}
+				}
+				else if (m_part_file && use_partfile(i))
 				{
 					m_part_file->export_file([this, i, &ec](std::int64_t file_offset, span<char> buf)
 					{
@@ -415,12 +426,16 @@ posix_storage::~posix_storage()
 			}
 		}
 
-		aux::initialize_storage(fs, m_save_path, m_stat_cache, m_file_priority
-			, [this](file_index_t const file_index, storage_error& e)
-			{ open_file(file_index, aux::open_mode::write, 0, e); }
-			, aux::create_symlink
-			, [&ret](file_index_t, std::int64_t) { ret |= disk_status::oversized_file; }
-			, ec);
+		aux::initialize_storage(
+			fs,
+			m_save_path,
+			m_stat_cache,
+			m_file_priority,
+			[&fs, this](file_index_t const file_index, storage_error& e) {
+				aux::create_empty_entry(fs, file_index, m_save_path, e);
+			},
+			[&ret](file_index_t, std::int64_t) { ret |= disk_status::oversized_file; },
+			ec);
 		return ret;
 	}
 

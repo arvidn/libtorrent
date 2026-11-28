@@ -1607,6 +1607,7 @@ namespace libtorrent::aux {
 			<< index << ")" << std::endl;
 #endif
 
+		int const prev_priority = p.priority(this);
 		bool have_piece = p.flushed();
 		if (!have_piece)
 		{
@@ -1633,10 +1634,18 @@ namespace libtorrent::aux {
 			}
 		}
 
-		p.set_not_flushed();
+		// unless we have the piece, p.index is its position in the piece list
+		if (p.flushed())
+			p.set_not_flushed();
 
 		if (m_dirty) return;
-		if (p.priority(this) >= 0) add(index);
+		int const new_priority = p.priority(this);
+		if (new_priority == prev_priority)
+			return;
+		if (prev_priority == -1)
+			add(index);
+		else
+			update(prev_priority, p.index);
 	}
 
 	// this is used to indicate that we successfully have

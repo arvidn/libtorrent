@@ -43,3 +43,10 @@
 [suppress_function]
   name_regexp = ^(std|boost)::
   name_not_regexp = ^std::(hash|numeric_limits)<libtorrent
+
+# typeinfo and type-name objects for function and pointer-to-function types
+# (emitted for std::function targets) have vague linkage. Every binary that
+# needs one emits its own weak copy, so they come and go with internal
+# callback signatures without affecting any caller
+[suppress_variable]
+  symbol_name_regexp = ^_ZT[IS]P?F

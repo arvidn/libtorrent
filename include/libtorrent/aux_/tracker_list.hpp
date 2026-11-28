@@ -59,8 +59,6 @@ struct TORRENT_EXTRA_EXPORT tracker_list
 
 	void replace(std::vector<lt::announce_entry> const& aes);
 
-	void enable_all();
-
 	void completed(time_point32 now);
 
 	void set_complete_sent();

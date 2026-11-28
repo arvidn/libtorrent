@@ -52,13 +52,16 @@ exe read_ahead_trace : read_ahead_trace.cpp ;
 install stage_read_ahead_trace : read_ahead_trace : <location>. ;
 explicit stage_read_ahead_trace ;
 # bencher uses do_not_optimize(), which relies on GNU inline asm and is
-# not supported by MSVC.
+# not supported by MSVC. It's only built on request, since it needs the
+# valgrind headers and is only useful under callgrind.
 exe bencher : bencher.cpp : <toolset>msvc:<build>no ;
+explicit bencher ;
+install stage_bencher : bencher : <location>. ;
+explicit stage_bencher ;
 
 install stage
 	: dht dht-sample session_log_alerts disk_io_stress_test
 	  gen_torture_torrent benchmark_load_torrent read_ahead_trace
-	  bencher
 	: <location>.
 	;
 explicit stage ;
