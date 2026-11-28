@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <map>
+#include <memory>
 #include <tuple>
 #include <functional>
 
@@ -289,8 +290,22 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name
 	// cache to keep around alerts that came *after* the one we're waiting for.
 	// To let subsequent calls to this function be able to pick those up, despite
 	// already being popped off the sessions alert queue.
-	static std::map<lt::session*, std::vector<alert*>> cache;
-	auto& alerts = cache[&ses];
+	struct alert_cache
+	{
+		// a later session may be constructed at the same address, its alerts
+		// must not be mixed up with the freed ones of the earlier session
+		std::weak_ptr<lt::aux::session_impl> owner;
+		std::vector<alert*> alerts;
+	};
+	static std::map<lt::session*, alert_cache> cache;
+	auto& c = cache[&ses];
+	std::shared_ptr<lt::aux::session_impl> const impl = ses.native_handle();
+	if (c.owner.lock() != impl)
+	{
+		c.alerts.clear();
+		c.owner = impl;
+	}
+	auto& alerts = c.alerts;
 
 	time_point const end_time = lt::clock_type::now() + timeout;
 
